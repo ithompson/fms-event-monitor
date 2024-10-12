@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fms-event-monitor"
+version = "0.1.0"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Ian Thompson", email = "ian@yann.io" }]
+
+dependencies = ["playwright~=1.47"]
+
+[project.urls]
+Source = "https://github.com/ianthompson/fms-event-monitor"
+
+[project.scripts]
+fms-event-monitor = "fmsmonitor.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fmsmonitor"]
