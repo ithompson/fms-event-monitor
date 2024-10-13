@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 import enum
 import logging
 from playwright.async_api import async_playwright
@@ -12,7 +13,9 @@ class MatchState(enum.Enum):
     WAITING_FOR_PRESTART = enum.auto()
     NOT_READY = enum.auto()
     READY = enum.auto()
+    STARTING_MATCH = enum.auto()
     RUNNING_AUTO = enum.auto()
+    RUNNING_PERIOD_TRANSITION = enum.auto()
     RUNNING_TELEOP = enum.auto()
     FINISHED = enum.auto()
     SCORES_POSTED = enum.auto()
@@ -27,8 +30,14 @@ class UpdateType(enum.Enum):
     MATCH_NUMBER = enum.auto()
 @dataclass
 class MatchLifecycleState:
+    update_type: UpdateType
     match_state: MatchState
     match_number: int
+    timestamp: datetime
+
+    @staticmethod
+    def default():
+        return MatchLifecycleState(UpdateType.MATCH_STATE, MatchState.UNKNOWN, 0, datetime.min)
 
 MONITOR_STATE_TABLE = {
     "READY TO PRE-START": MatchState.WAITING_FOR_PRESTART,
@@ -36,9 +45,9 @@ MONITOR_STATE_TABLE = {
     "PRE-START COMPLETED": MatchState.NOT_READY,
     "MATCH NOT READY": MatchState.NOT_READY,
     "MATCH READY": MatchState.READY,
-    "CLEARING GAME DATA": MatchState.RUNNING_AUTO,
+    "CLEARING GAME DATA": MatchState.STARTING_MATCH,
     "MATCH RUNNING (AUTO)": MatchState.RUNNING_AUTO,
-    "MATCH TRANSITIONING": MatchState.RUNNING_AUTO,
+    "MATCH TRANSITIONING": MatchState.RUNNING_PERIOD_TRANSITION,
     "MATCH RUNNING (TELEOP)": MatchState.RUNNING_TELEOP,
     "MATCH OVER": MatchState.FINISHED,
     "READY FOR POST-RESULT": MatchState.FINISHED,
@@ -115,18 +124,18 @@ class FieldMonitor:
                             match_state = MatchState.SCORES_POSTED
 
                         self._current_state = match_state
-                        await self._send_lifecycle_update()
+                        await self._send_lifecycle_update(UpdateType.MATCH_STATE)
                 case "match_number":
                     if m := re.match(r"M: (\d+)", field_value):
                         self._current_match_number = int(m.group(1))
-                        await self._send_lifecycle_update()
+                        await self._send_lifecycle_update(UpdateType.MATCH_NUMBER)
                 case _:
                     pass
         except Exception as e:
             logger.exception("Error processing field monitor event", exc_info=e)
 
-    async def _send_lifecycle_update(self):
-        event_to_send = MatchLifecycleState(self._current_state, self._current_match_number)
+    async def _send_lifecycle_update(self, update_type: UpdateType):
+        event_to_send = MatchLifecycleState(update_type, self._current_state, self._current_match_number, datetime.now())
         logger.info(f"Sending lifecycle update: {event_to_send}")
         await self._event_queue.put(event_to_send)
 

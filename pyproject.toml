@@ -10,7 +10,7 @@ license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "Ian Thompson", email = "ian@yann.io" }]
 
-dependencies = ["playwright~=1.47"]
+dependencies = ["playwright~=1.47", "websockets~=13.1"]
 
 [project.urls]
 Source = "https://github.com/ianthompson/fms-event-monitor"

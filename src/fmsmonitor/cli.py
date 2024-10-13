@@ -2,19 +2,25 @@ import argparse
 import asyncio
 import logging
 
-from fmsmonitor.field_monitor import FieldMonitor
+from .field_monitor import FieldMonitor
+from .event_publisher import EventPublisher
 
 logger = logging.getLogger(__name__)
 
 async def run(args):
-    queue = asyncio.Queue()
-    field_monitor = FieldMonitor(queue, args.fms_address)
+    fms_event_queue = asyncio.Queue()
+    field_monitor = FieldMonitor(fms_event_queue, args.fms_address)
+    event_publisher = EventPublisher(fms_event_queue, args.websocket_port)
 
-    await field_monitor.run()
+    await asyncio.gather(
+        field_monitor.run(),
+        event_publisher.run(),
+    )
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--fms_address', type=str, default='10.0.100.5')
+    parser.add_argument('--websocket_port', type=int, default=5805)
     parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
