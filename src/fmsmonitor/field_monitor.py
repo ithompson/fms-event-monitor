@@ -90,9 +90,13 @@ class FieldMonitor:
             await page.add_init_script(FIELD_MONITOR_SCRIPT)
 
             await page.goto(f"http://{self._fms_address}/FieldMonitor")
-            await page.screenshot(path="example.png")
-            await asyncio.sleep(1000)
-            #await browser.close()
+
+            # Block until this task is cancelled. Playwright is
+            # internally running tasks to dispatch callbacks from
+            # our browser-side script, and we need to keep the
+            # Playwright context alive to receive these events.
+            dummy_future = asyncio.get_event_loop().create_future()
+            await dummy_future
 
     async def _script_event_callback(self, event):
         try:

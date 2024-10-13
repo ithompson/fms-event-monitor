@@ -24,4 +24,16 @@ def main():
         log_level = logging.DEBUG
     logging.basicConfig(level=log_level)
 
-    asyncio.run(run(args), debug=True)
+    loop = asyncio.get_event_loop()
+    main_task = loop.create_task(run(args))
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        main_task.cancel()
+        try:
+            loop.run_until_complete(main_task)
+        except asyncio.CancelledError:
+            pass
+        loop.close()
