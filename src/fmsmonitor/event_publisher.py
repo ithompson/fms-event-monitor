@@ -1,22 +1,23 @@
 import asyncio
+from typing import Dict
+
 from .cheesy_websocket import CheesyWebsocketServer, Notifier
 from .field_monitor import MatchLifecycleState, MatchState, UpdateType
 
-from typing import Dict
-
 CHEESY_STATE_ENCODINGS: Dict[MatchState, int] = {
-    MatchState.UNKNOWN: 0, # PRE_MATCH
-    MatchState.WAITING_FOR_PRESTART: 0, # PRE_MATCH
-    MatchState.NOT_READY: 0, # PRE_MATCH
-    MatchState.READY: 0, # PRE_MATCH
-    MatchState.STARTING_MATCH: 1, # START_MATCH
-    MatchState.RUNNING_AUTO: 3, # AUTO_PERIOD
-    MatchState.RUNNING_PERIOD_TRANSITION: 4, # PAUSE_PERIOD
-    MatchState.RUNNING_TELEOP: 5, # TELEOP_PERIOD
-    MatchState.FINISHED: 6, # POST_MATCH
-    MatchState.SCORES_POSTED: 6, # POST_MATCH
-    MatchState.ABORTED: 6, # POST_MATCH
+    MatchState.UNKNOWN: 0,  # PRE_MATCH
+    MatchState.WAITING_FOR_PRESTART: 0,  # PRE_MATCH
+    MatchState.NOT_READY: 0,  # PRE_MATCH
+    MatchState.READY: 0,  # PRE_MATCH
+    MatchState.STARTING_MATCH: 1,  # START_MATCH
+    MatchState.RUNNING_AUTO: 3,  # AUTO_PERIOD
+    MatchState.RUNNING_PERIOD_TRANSITION: 4,  # PAUSE_PERIOD
+    MatchState.RUNNING_TELEOP: 5,  # TELEOP_PERIOD
+    MatchState.FINISHED: 6,  # POST_MATCH
+    MatchState.SCORES_POSTED: 6,  # POST_MATCH
+    MatchState.ABORTED: 6,  # POST_MATCH
 }
+
 
 class EventPublisher:
     def __init__(self, fms_event_queue: asyncio.Queue, port: int):
@@ -55,7 +56,9 @@ class EventPublisher:
                     "Match": {
                         "LongName": f"M {self._current_fms_state.match_number}",
                         "ShortName": f"M {self._current_fms_state.match_number}",
-                        "Status": CHEESY_STATE_ENCODINGS.get(self._current_fms_state.match_state, 0),
+                        "Status": CHEESY_STATE_ENCODINGS.get(
+                            self._current_fms_state.match_state, 0
+                        ),
                         # Future improvement: Read the team numbers from the field monitor and populate them here
                         "Red1": 0,
                         "Red1IsSurrogate": False,
@@ -81,7 +84,9 @@ class EventPublisher:
                 }
             case Notifier.MatchTime:
                 return {
-                    "MatchState": CHEESY_STATE_ENCODINGS.get(self._current_fms_state.match_state, 0),
+                    "MatchState": CHEESY_STATE_ENCODINGS.get(
+                        self._current_fms_state.match_state, 0
+                    ),
                     "MatchTimeSec": 0,
                 }
             case Notifier.MatchTiming:

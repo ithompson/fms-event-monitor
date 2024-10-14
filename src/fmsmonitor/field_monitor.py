@@ -1,12 +1,14 @@
 import asyncio
-from dataclasses import dataclass
-from datetime import datetime
 import enum
 import logging
-from playwright.async_api import async_playwright
 import re
+from dataclasses import dataclass
+from datetime import datetime
+
+from playwright.async_api import async_playwright
 
 logger = logging.getLogger(__name__)
+
 
 class MatchState(enum.Enum):
     UNKNOWN = enum.auto()
@@ -25,9 +27,12 @@ class MatchState(enum.Enum):
     def from_monitor_state(cls, monitor_state: str):
         return MONITOR_STATE_TABLE.get(monitor_state, cls.UNKNOWN)
 
+
 class UpdateType(enum.Enum):
     MATCH_STATE = enum.auto()
     MATCH_NUMBER = enum.auto()
+
+
 @dataclass
 class MatchLifecycleState:
     update_type: UpdateType
@@ -37,7 +42,10 @@ class MatchLifecycleState:
 
     @staticmethod
     def default():
-        return MatchLifecycleState(UpdateType.MATCH_STATE, MatchState.UNKNOWN, 0, datetime.min)
+        return MatchLifecycleState(
+            UpdateType.MATCH_STATE, MatchState.UNKNOWN, 0, datetime.min
+        )
+
 
 MONITOR_STATE_TABLE = {
     "READY TO PRE-START": MatchState.WAITING_FOR_PRESTART,
@@ -82,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 """
 
+
 class FieldMonitor:
     def __init__(self, event_queue: asyncio.Queue, fms_address: str):
         self._event_queue = event_queue
@@ -120,7 +129,10 @@ class FieldMonitor:
                         # Special case: A FINISHED -> WAITING_FOR_PRESTART transition indicates that scores were posted.
                         # Record a SCORES_POSTED state instead. This is a bit of a hack, but it's the best we can do since
                         # the field monitor doesn't distinguish the reason for a WAITING_FOR_PRESTART state.
-                        if self._current_state == MatchState.FINISHED and match_state == MatchState.WAITING_FOR_PRESTART:
+                        if (
+                            self._current_state == MatchState.FINISHED
+                            and match_state == MatchState.WAITING_FOR_PRESTART
+                        ):
                             match_state = MatchState.SCORES_POSTED
 
                         self._current_state = match_state
@@ -135,7 +147,9 @@ class FieldMonitor:
             logger.exception("Error processing field monitor event", exc_info=e)
 
     async def _send_lifecycle_update(self, update_type: UpdateType):
-        event_to_send = MatchLifecycleState(update_type, self._current_state, self._current_match_number, datetime.now())
+        event_to_send = MatchLifecycleState(
+            update_type, self._current_state, self._current_match_number, datetime.now()
+        )
         logger.info(f"Sending lifecycle update: {event_to_send}")
         await self._event_queue.put(event_to_send)
 
