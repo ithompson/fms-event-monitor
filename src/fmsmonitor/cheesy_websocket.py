@@ -1,7 +1,7 @@
 import enum
 import json
 import logging
-from typing import Callable, Dict, List, Set
+from collections.abc import Callable
 
 from websockets.asyncio.server import ServerConnection, serve
 
@@ -15,7 +15,7 @@ class Notifier(enum.Enum):
     MatchTiming = "matchTiming"
 
 
-ENDPOINTS: Dict[str, List[Notifier]] = {
+ENDPOINTS: dict[str, list[Notifier]] = {
     "/api/match_lifecycle/websocket": [Notifier.MatchLifecycle],
     "/displays/field_monitor/websocket": [
         Notifier.MatchTiming,
@@ -34,15 +34,25 @@ class CheesyWebsocketServer:
     def __init__(self, port: int, data_callback: Callable[[Notifier], any]):
         self._port = port
         self._data_callback = data_callback
+        self._server = None
 
-        self._listeners: Dict[Notifier, Set[ServerConnection]] = {}
+        self._listeners: dict[Notifier, set[ServerConnection]] = {}
         for notifier in Notifier:
             self._listeners[notifier] = set()
 
+    async def open_server_socket(self):
+        self._server = await serve(self._handle_connection, None, self._port)
+
     async def run(self):
         # Run a websocket server that listens on the specified port indefinitely
-        server = await serve(self._handle_connection, None, self._port)
-        await server.serve_forever()
+        if not self._server:
+            await self.open_server_socket()
+        await self._server.serve_forever()
+
+    def get_listen_socket(self):
+        if not self._server:
+            raise RuntimeError("Server not running")
+        return self._server.sockets[0]
 
     async def _handle_connection(self, websocket: ServerConnection):
         # Register the websocket for the appropriate notifiers
@@ -58,7 +68,7 @@ class CheesyWebsocketServer:
             self._listeners[notifier].add(websocket)
 
         try:
-            async for message in websocket:
+            async for _ in websocket:
                 # Discard all inbound messages
                 pass
         finally:
@@ -67,9 +77,9 @@ class CheesyWebsocketServer:
                 self._listeners[notifier].discard(websocket)
 
     async def _broadcast_notification(
-        self, notifier: Notifier, targets: Set[ServerConnection]
+        self, notifier: Notifier, targets: set[ServerConnection]
     ):
-        logger.debug(f"Broadcasting {notifier} to {len(targets)} targets")
+        logger.debug(f"Broadcasting {notifier} to {len(targets)} clients")
         data = self._data_callback(notifier)
         encoded_msg = json.dumps(
             {

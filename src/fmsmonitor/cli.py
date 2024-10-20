@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 async def run(args):
     fms_event_queue = asyncio.Queue()
-    field_monitor = FieldMonitor(fms_event_queue, args.fms_address)
+    field_monitor = FieldMonitor(
+        fms_event_queue, f"http://{args.fms_address}/FieldMonitor"
+    )
     event_publisher = EventPublisher(fms_event_queue, args.websocket_port)
 
     await asyncio.gather(

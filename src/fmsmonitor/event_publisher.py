@@ -1,10 +1,9 @@
 import asyncio
-from typing import Dict
 
 from .cheesy_websocket import CheesyWebsocketServer, Notifier
 from .field_monitor import MatchLifecycleState, MatchState, UpdateType
 
-CHEESY_STATE_ENCODINGS: Dict[MatchState, int] = {
+CHEESY_STATE_ENCODINGS: dict[MatchState, int] = {
     MatchState.UNKNOWN: 0,  # PRE_MATCH
     MatchState.WAITING_FOR_PRESTART: 0,  # PRE_MATCH
     MatchState.NOT_READY: 0,  # PRE_MATCH
@@ -28,10 +27,10 @@ class EventPublisher:
     async def run(self):
         await asyncio.gather(
             self._cheesy_socket.run(),
-            self.pump_fms_events(),
+            self._pump_fms_events(),
         )
 
-    async def pump_fms_events(self):
+    async def _pump_fms_events(self):
         while True:
             self._current_fms_state = await self._fms_event_queue.get()
             match self._current_fms_state.update_type:
@@ -41,6 +40,7 @@ class EventPublisher:
                 case UpdateType.MATCH_NUMBER:
                     await self._cheesy_socket.notify(Notifier.MatchLifecycle)
                     await self._cheesy_socket.notify(Notifier.MatchLoad)
+            self._fms_event_queue.task_done()
 
     def _websocket_data_callback(self, notifier: Notifier):
         match notifier:

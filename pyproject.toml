@@ -18,5 +18,19 @@ Source = "https://github.com/ianthompson/fms-event-monitor"
 [project.scripts]
 fms-event-monitor = "fmsmonitor.cli:main"
 
+[tool.hatch.build.targets.sdist]
+exlcude = ["/.github", "/.vscode", "/tests", "/tools"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/fmsmonitor"]
+
+[tool.hatch.envs.hatch-test]
+extra-dependencies = ["pytest-asyncio", "pytest-timeout", "pytest-mock"]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.10", "3.11", "3.12"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"

@@ -92,22 +92,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 class FieldMonitor:
-    def __init__(self, event_queue: asyncio.Queue, fms_address: str):
+    def __init__(self, event_queue: asyncio.Queue, url: str):
         self._event_queue = event_queue
-        self._fms_address = fms_address
         self._current_state = MatchState.UNKNOWN
         self._current_match_number = 0
+        self._field_monitor_url = url
 
     async def run(self):
+        logger.debug("Launching field monitor browser")
         async with async_playwright() as p:
-            browser = await p.chromium.launch()
-            page = await browser.new_page()
-            page.on("console", self._console_callback)
+            self._browser = await p.chromium.launch()
+            self._page = await self._browser.new_page()
+            self._page.on("console", self._console_callback)
 
-            await page.expose_function("__scriptEvent", self._script_event_callback)
-            await page.add_init_script(FIELD_MONITOR_SCRIPT)
+            await self._page.expose_function(
+                "__scriptEvent", self._script_event_callback
+            )
+            await self._page.add_init_script(FIELD_MONITOR_SCRIPT)
 
-            await page.goto(f"http://{self._fms_address}/FieldMonitor")
+            await self._page.goto(self._field_monitor_url)
 
             # Block until this task is cancelled. Playwright is
             # internally running tasks to dispatch callbacks from

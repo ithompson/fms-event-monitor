@@ -1,0 +1,54 @@
+<html>
+
+<head>
+    <title>Field Monitor Test</title>
+    <script type="text/javascript">
+        addEventListener("load", (event) => {
+            let match_state_node = document.querySelector("#matchStateTop");
+            let match_number_node = document.querySelector("#MatchNumber");
+
+            let update_sequence = [
+                // Run through a full match cycle
+                [match_number_node, "M: 1"],
+                [match_state_node, "READY TO PRE-START"],
+                [match_state_node, "PRE-START INITIATED"],
+                [match_state_node, "PRE-START COMPLETED"],
+                [match_state_node, "MATCH NOT READY"],
+                [match_state_node, "MATCH READY"],
+                [match_state_node, "CLEARING GAME DATA"],
+                [match_state_node, "MATCH RUNNING (AUTO)"],
+                [match_state_node, "MATCH TRANSITIONING"],
+                [match_state_node, "MATCH RUNNING (TELEOP)"],
+                [match_state_node, "MATCH OVER"],
+                [match_state_node, "READY FOR POST-RESULT"],
+                [match_state_node, "READY TO PRE-START"],
+                [match_state_node, "PRE-START INITIATED"],
+                [match_number_node, "M: 2"],
+                [match_state_node, "PRE-START COMPLETED"],
+                // Run through an abort cycle
+                [match_state_node, "MATCH NOT READY"],
+                [match_state_node, "MATCH READY"],
+                [match_state_node, "CLEARING GAME DATA"],
+                [match_state_node, "MATCH RUNNING (AUTO)"],
+                [match_state_node, "MATCH ABORTED"],
+                [match_state_node, "READY TO PRE-START"]
+            ];
+
+            function apply_step(i) {
+                if (i < update_sequence.length) {
+                    let [node, text] = update_sequence[i];
+                    node.textContent = text;
+                    setTimeout(apply_step, 0, i + 1);
+                }
+            }
+            apply_step(0)
+        })
+    </script>
+</head>
+
+<body>
+    <span id="matchStateTop"></span>
+    <span id="MatchNumber"></span>
+</body>
+
+</html>
