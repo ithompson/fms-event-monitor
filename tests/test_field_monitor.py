@@ -1,14 +1,18 @@
 import asyncio
+from datetime import datetime
 from pathlib import Path
 
 import pytest
-from fmsmonitor.field_monitor import *
+from fmsmonitor.field_monitor import (
+    FieldMonitor,
+    MatchLifecycleState,
+    MatchState,
+    UpdateType,
+)
 
 
 def test_match_lifecycle_state():
-    state = MatchLifecycleState(
-        UpdateType.MATCH_STATE, MatchState.READY, 1, datetime.now()
-    )
+    state = MatchLifecycleState(UpdateType.MATCH_STATE, MatchState.READY, 1, datetime.min)
     assert state.update_type == UpdateType.MATCH_STATE
     assert state.match_state == MatchState.READY
     assert state.match_number == 1
@@ -63,9 +67,5 @@ async def test_event_detection():
             assert (event.update_type, event.match_state, event.match_number) == update
             event_queue.task_done()
     finally:
-        await monitor._browser.close()
-        monitor_task.cancel()
-        try:
-            await monitor_task
-        except asyncio.CancelledError:
-            pass
+        await monitor.close()
+        await monitor_task

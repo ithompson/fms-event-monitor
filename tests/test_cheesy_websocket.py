@@ -1,10 +1,11 @@
 import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 
 import pytest
-from fmsmonitor.cheesy_websocket import *
+from fmsmonitor.cheesy_websocket import CheesyWebsocketServer, Notifier
 
-from .websocket_helpers import *
+from .websocket_helpers import assert_msg, ws_client, ws_message
 
 # Ensure all websocket tests time out if a message is missed
 pytestmark = [pytest.mark.timeout(5)]
@@ -19,10 +20,8 @@ async def ws_server(notifier):
         yield server
     finally:
         server_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await server_task
-        except asyncio.CancelledError:
-            pass
 
 
 @pytest.fixture
@@ -57,9 +56,7 @@ async def test_notify(simple_server):
             await assert_msg(ws, "matchLifecycle", {})
 
 
-@pytest.mark.parametrize(
-    "endpoint", ["/api/arena/websocket", "/displays/field_monitor/websocket"]
-)
+@pytest.mark.parametrize("endpoint", ["/api/arena/websocket", "/displays/field_monitor/websocket"])
 async def test_multiple_notifiers(simple_server, endpoint):
     # Test that the server can interleave messages from multiple notifiers
     async with ws_client(simple_server, endpoint=endpoint) as ws:
@@ -86,19 +83,18 @@ async def test_notifier_data():
     def notifier(_):
         return notifier_data
 
-    async with ws_server(notifier) as server:
-        async with ws_client(server) as ws:
-            await assert_msg(ws, "matchLifecycle", notifier_data)
-            await server.notify(Notifier.MatchLifecycle)
-            await assert_msg(ws, "matchLifecycle", notifier_data)
+    async with ws_server(notifier) as server, ws_client(server) as ws:
+        await assert_msg(ws, "matchLifecycle", notifier_data)
+        await server.notify(Notifier.MatchLifecycle)
+        await assert_msg(ws, "matchLifecycle", notifier_data)
 
-            msg_1 = {"stuff": 6, "things": "abcd"}
-            msg_2 = {"fdsafasd": 27, "ffff": "qqqq"}
+        msg_1 = {"stuff": 6, "things": "abcd"}
+        msg_2 = {"fdsafasd": 27, "ffff": "qqqq"}
 
-            notifier_data = msg_1
-            await server.notify(Notifier.MatchLifecycle)
-            notifier_data = msg_2
-            await server.notify(Notifier.MatchLifecycle)
+        notifier_data = msg_1
+        await server.notify(Notifier.MatchLifecycle)
+        notifier_data = msg_2
+        await server.notify(Notifier.MatchLifecycle)
 
-            await assert_msg(ws, "matchLifecycle", msg_1)
-            await assert_msg(ws, "matchLifecycle", msg_2)
+        await assert_msg(ws, "matchLifecycle", msg_1)
+        await assert_msg(ws, "matchLifecycle", msg_2)

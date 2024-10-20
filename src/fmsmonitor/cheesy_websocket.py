@@ -8,6 +8,11 @@ from websockets.asyncio.server import ServerConnection, serve
 logger = logging.getLogger(__name__)
 
 
+class ServerNotYetRunningError(Exception):
+    def __init__(self):
+        super().__init__("Server not yet running")
+
+
 class Notifier(enum.Enum):
     MatchLifecycle = "matchLifecycle"
     MatchLoad = "matchLoad"
@@ -51,16 +56,14 @@ class CheesyWebsocketServer:
 
     def get_listen_socket(self):
         if not self._server:
-            raise RuntimeError("Server not running")
+            raise ServerNotYetRunningError
         return self._server.sockets[0]
 
     async def _handle_connection(self, websocket: ServerConnection):
         # Register the websocket for the appropriate notifiers
         path = websocket.request.path.split("?")[0].rstrip("/")
         notifiers_for_connection = ENDPOINTS.get(path, [])
-        logger.info(
-            f"New websocket connection for {path}, subscribing to {notifiers_for_connection}"
-        )
+        logger.info("New websocket connection for %s, subscribing to %s", path, notifiers_for_connection)
         for notifier in notifiers_for_connection:
             # Send the initial data for this notifier
             await self._broadcast_notification(notifier, {websocket})
@@ -76,10 +79,8 @@ class CheesyWebsocketServer:
             for notifier in notifiers_for_connection:
                 self._listeners[notifier].discard(websocket)
 
-    async def _broadcast_notification(
-        self, notifier: Notifier, targets: set[ServerConnection]
-    ):
-        logger.debug(f"Broadcasting {notifier} to {len(targets)} clients")
+    async def _broadcast_notification(self, notifier: Notifier, targets: set[ServerConnection]):
+        logger.debug("Broadcasting %s to %d clients", notifier.name, len(targets))
         data = self._data_callback(notifier)
         encoded_msg = json.dumps(
             {

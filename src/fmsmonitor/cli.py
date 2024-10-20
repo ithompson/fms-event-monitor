@@ -1,18 +1,17 @@
 import argparse
 import asyncio
+import contextlib
 import logging
 
-from .event_publisher import EventPublisher
-from .field_monitor import FieldMonitor
+from fmsmonitor.event_publisher import EventPublisher
+from fmsmonitor.field_monitor import FieldMonitor
 
 logger = logging.getLogger(__name__)
 
 
 async def run(args):
     fms_event_queue = asyncio.Queue()
-    field_monitor = FieldMonitor(
-        fms_event_queue, f"http://{args.fms_address}/FieldMonitor"
-    )
+    field_monitor = FieldMonitor(fms_event_queue, f"http://{args.fms_address}/FieldMonitor")
     event_publisher = EventPublisher(fms_event_queue, args.websocket_port)
 
     await asyncio.gather(
@@ -42,8 +41,6 @@ def main():
         pass
     finally:
         main_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             loop.run_until_complete(main_task)
-        except asyncio.CancelledError:
-            pass
         loop.close()

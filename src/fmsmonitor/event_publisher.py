@@ -1,7 +1,7 @@
 import asyncio
 
-from .cheesy_websocket import CheesyWebsocketServer, Notifier
-from .field_monitor import MatchLifecycleState, MatchState, UpdateType
+from fmsmonitor.cheesy_websocket import CheesyWebsocketServer, Notifier
+from fmsmonitor.field_monitor import MatchLifecycleState, MatchState, UpdateType
 
 CHEESY_STATE_ENCODINGS: dict[MatchState, int] = {
     MatchState.UNKNOWN: 0,  # PRE_MATCH
@@ -22,11 +22,11 @@ class EventPublisher:
     def __init__(self, fms_event_queue: asyncio.Queue, port: int):
         self._fms_event_queue = fms_event_queue
         self._current_fms_state: MatchLifecycleState = MatchLifecycleState.default()
-        self._cheesy_socket = CheesyWebsocketServer(port, self._websocket_data_callback)
+        self.cheesy_socket = CheesyWebsocketServer(port, self._websocket_data_callback)
 
     async def run(self):
         await asyncio.gather(
-            self._cheesy_socket.run(),
+            self.cheesy_socket.run(),
             self._pump_fms_events(),
         )
 
@@ -35,11 +35,11 @@ class EventPublisher:
             self._current_fms_state = await self._fms_event_queue.get()
             match self._current_fms_state.update_type:
                 case UpdateType.MATCH_STATE:
-                    await self._cheesy_socket.notify(Notifier.MatchLifecycle)
-                    await self._cheesy_socket.notify(Notifier.MatchTime)
+                    await self.cheesy_socket.notify(Notifier.MatchLifecycle)
+                    await self.cheesy_socket.notify(Notifier.MatchTime)
                 case UpdateType.MATCH_NUMBER:
-                    await self._cheesy_socket.notify(Notifier.MatchLifecycle)
-                    await self._cheesy_socket.notify(Notifier.MatchLoad)
+                    await self.cheesy_socket.notify(Notifier.MatchLifecycle)
+                    await self.cheesy_socket.notify(Notifier.MatchLoad)
             self._fms_event_queue.task_done()
 
     def _websocket_data_callback(self, notifier: Notifier):
@@ -56,9 +56,7 @@ class EventPublisher:
                     "Match": {
                         "LongName": f"M {self._current_fms_state.match_number}",
                         "ShortName": f"M {self._current_fms_state.match_number}",
-                        "Status": CHEESY_STATE_ENCODINGS.get(
-                            self._current_fms_state.match_state, 0
-                        ),
+                        "Status": CHEESY_STATE_ENCODINGS.get(self._current_fms_state.match_state, 0),
                         # Future improvement: Read the team numbers from the field monitor and populate them here
                         "Red1": 0,
                         "Red1IsSurrogate": False,
@@ -84,9 +82,7 @@ class EventPublisher:
                 }
             case Notifier.MatchTime:
                 return {
-                    "MatchState": CHEESY_STATE_ENCODINGS.get(
-                        self._current_fms_state.match_state, 0
-                    ),
+                    "MatchState": CHEESY_STATE_ENCODINGS.get(self._current_fms_state.match_state, 0),
                     "MatchTimeSec": 0,
                 }
             case Notifier.MatchTiming:
@@ -99,4 +95,5 @@ class EventPublisher:
                     "WarningRemainingDurationSec": 20,
                 }
             case _:
-                raise ValueError(f"Unknown notifier: {notifier}")
+                msg = f"Unknown notifier: {notifier}"
+                raise ValueError(msg)

@@ -1,9 +1,9 @@
 import asyncio
+import datetime as dt
 import enum
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime
 
 from playwright.async_api import async_playwright
 
@@ -38,13 +38,11 @@ class MatchLifecycleState:
     update_type: UpdateType
     match_state: MatchState
     match_number: int
-    timestamp: datetime
+    timestamp: dt.datetime
 
     @staticmethod
     def default():
-        return MatchLifecycleState(
-            UpdateType.MATCH_STATE, MatchState.UNKNOWN, 0, datetime.min
-        )
+        return MatchLifecycleState(UpdateType.MATCH_STATE, MatchState.UNKNOWN, 0, dt.datetime.min)
 
 
 MONITOR_STATE_TABLE = {
@@ -97,31 +95,36 @@ class FieldMonitor:
         self._current_state = MatchState.UNKNOWN
         self._current_match_number = 0
         self._field_monitor_url = url
+        self._close_future = None
 
     async def run(self):
         logger.debug("Launching field monitor browser")
+        self._close_future = asyncio.get_event_loop().create_future()
         async with async_playwright() as p:
             self._browser = await p.chromium.launch()
             self._page = await self._browser.new_page()
             self._page.on("console", self._console_callback)
 
-            await self._page.expose_function(
-                "__scriptEvent", self._script_event_callback
-            )
+            await self._page.expose_function("__scriptEvent", self._script_event_callback)
             await self._page.add_init_script(FIELD_MONITOR_SCRIPT)
 
             await self._page.goto(self._field_monitor_url)
 
-            # Block until this task is cancelled. Playwright is
+            # Block until we're asked to close. Playwright is
             # internally running tasks to dispatch callbacks from
             # our browser-side script, and we need to keep the
             # Playwright context alive to receive these events.
-            dummy_future = asyncio.get_event_loop().create_future()
-            await dummy_future
+            await self._close_future
+
+    async def close(self):
+        if self._close_future is None:
+            return
+        await self._browser.close()
+        self._close_future.set_result(None)
 
     async def _script_event_callback(self, event):
         try:
-            logger.debug(f"Received event from field monitor: {event}")
+            logger.debug("Received event from field monitor: %s", event)
             field_name = event["field"]
             field_value = event["value"]
             match field_name:
@@ -151,10 +154,13 @@ class FieldMonitor:
 
     async def _send_lifecycle_update(self, update_type: UpdateType):
         event_to_send = MatchLifecycleState(
-            update_type, self._current_state, self._current_match_number, datetime.now()
+            update_type,
+            self._current_state,
+            self._current_match_number,
+            dt.datetime.now(dt.timezone.utc),
         )
-        logger.info(f"Sending lifecycle update: {event_to_send}")
+        logger.info("Sending lifecycle update: %s", event_to_send)
         await self._event_queue.put(event_to_send)
 
     async def _console_callback(self, message):
-        logger.info(f"Field monitor JS console message: {message}")
+        logger.info("Field monitor JS console message: %s", message)
