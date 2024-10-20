@@ -65,4 +65,3 @@ async def test_event_detection():
     finally:
         await monitor.close()
         await monitor_task
-        await monitor_task
