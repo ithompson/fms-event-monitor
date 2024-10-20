@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  package:
+    name: Package on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        # Note: Pyinstaller does not work with playwright on MacOS today. See https://github.com/pyinstaller/pyinstaller/issues/7969
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Install playwright
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: 0
+        run: python -m playwright install --with-deps chromium
+
+      - name: Install pyinstaller
+        run: pip install --upgrade pyinstaller
+
+      - name: Build package
+        run: pyinstaller --onefile --clean --name fms-event-monitor ./src/fmsmonitor/__main__.py
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: fms-event-monitor-${{ matrix.os }}
+          path: dist/fms-event-monitor${{ startsWith(matrix.os, 'windows-') && '.exe' || '' }}
+
+  release:
+    name: Upload release package to GitHub
+    runs-on: ubuntu-latest
+    needs: package
+
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: fms-event-monitor-ubuntu-latest
+          path: dist/linux
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: fms-event-monitor-windows-latest
+          path: dist/windows
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/linux/fms-event-monitor
+            dist/windows/fms-event-monitor.exe
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
