@@ -33,11 +33,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install python dependencies
-        run: pip install -r pyproject.toml
+      - name: Install dependencies
+        run: pip install -e .
 
       - name: Set up Playwright
-        run: playwright install chromium
+        run: python -m playwright install --with-deps chromium
 
       - name: Install Hatch
         run: pip install --upgrade hatch
