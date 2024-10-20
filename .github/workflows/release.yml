@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+permissions:
+  # Grant this workflow the ability to update releases
+  contents: write
+
 env:
   PYTHONUNBUFFERED: "1"
   FORCE_COLOR: "1"
