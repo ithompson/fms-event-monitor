@@ -44,7 +44,7 @@ jobs:
         run: pip install --upgrade pyinstaller
 
       - name: Build package
-        run: pyinstaller --onefile --clean --name fms-event-monitor ./src/fms_event_monitor/__main__.py
+        run: pyinstaller --onefile --clean --name fms-event-monitor ./src/fmsmonitor/__main__.py
 
       - name: Upload package
         uses: actions/upload-artifact@v4
