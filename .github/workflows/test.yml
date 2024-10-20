@@ -37,7 +37,7 @@ jobs:
         run: pip install -e .
 
       - name: Set up Playwright
-        run: python -m playwright install --with-deps chromium
+        run: PLAYWRIGHT_BROWSERS_PATH=0 python -m playwright install --with-deps chromium
 
       - name: Install Hatch
         run: pip install --upgrade hatch
