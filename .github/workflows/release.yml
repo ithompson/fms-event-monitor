@@ -4,11 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/release.yml"
 
 env:
   PYTHONUNBUFFERED: "1"
@@ -69,13 +64,11 @@ jobs:
         with:
           name: fms-event-monitor-windows-latest
           path: dist/windows
-      - name: Release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             dist/linux/fms-event-monitor
             dist/windows/fms-event-monitor.exe
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ github.ref }}
           draft: true
-          prerelease: true
