@@ -63,12 +63,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: fms-event-monitor-ubuntu-latest
-          path: dist/linux/fms-event-monitor
+          path: dist/linux
       - name: Download package
         uses: actions/download-artifact@v4
         with:
           name: fms-event-monitor-windows-latest
-          path: dist/windows/fms-event-monitor.exe
+          path: dist/windows
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
