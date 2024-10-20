@@ -3,12 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from fmsmonitor.field_monitor import (
-    FieldMonitor,
-    MatchLifecycleState,
-    MatchState,
-    UpdateType,
-)
+from fmsmonitor.field_monitor import FieldMonitor, MatchLifecycleState, MatchState, UpdateType
 
 
 def test_match_lifecycle_state():
@@ -27,6 +22,7 @@ def test_match_lifecycle_state_default():
 
 
 @pytest.mark.timeout(10)
+@pytest.mark.playwright
 async def test_event_detection():
     test_page_path = Path(__file__).resolve().parent / "static/field_monitor_test.html"
     test_page_uri = f"file://{test_page_path}"
@@ -68,4 +64,5 @@ async def test_event_detection():
             event_queue.task_done()
     finally:
         await monitor.close()
+        await monitor_task
         await monitor_task

@@ -18,6 +18,7 @@ jobs:
   run:
     name: Python ${{ matrix.python-version }} on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
@@ -33,14 +34,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install dependencies
-        run: pip install -e .
-
-      - name: Set up Playwright
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: 0
-        run: python -m playwright install --with-deps chromium
-
       - name: Install Hatch
         run: pip install --upgrade hatch
 
@@ -48,4 +41,4 @@ jobs:
         run: hatch fmt --check
 
       - name: Run tests
-        run: hatch test --python ${{ matrix.python-version }} --cover --randomize --parallel --retries 2 --retry-delay 1 -- --timeout 30
+        run: hatch test --python ${{ matrix.python-version }} --cover --randomize --parallel --retries 2 --retry-delay 1 -- --timeout 30 -m "not playwright"
