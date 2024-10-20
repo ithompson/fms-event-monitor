@@ -37,7 +37,9 @@ jobs:
         run: pip install -e .
 
       - name: Set up Playwright
-        run: PLAYWRIGHT_BROWSERS_PATH=0 python -m playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: 0
+        run: python -m playwright install --with-deps chromium
 
       - name: Install Hatch
         run: pip install --upgrade hatch
@@ -46,4 +48,4 @@ jobs:
         run: hatch fmt --check
 
       - name: Run tests
-        run: hatch test --python ${{ matrix.python-version }} --cover --randomize --parallel --retries 2 --retry-delay 1
+        run: hatch test --python ${{ matrix.python-version }} --cover --randomize --parallel --retries 2 --retry-delay 1 -- --timeout 30
