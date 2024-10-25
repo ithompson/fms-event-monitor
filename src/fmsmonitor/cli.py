@@ -3,6 +3,7 @@ import asyncio
 import contextlib
 import logging
 
+from fmsmonitor import __version__
 from fmsmonitor.event_publisher import EventPublisher
 from fmsmonitor.field_monitor import FieldMonitor
 
@@ -21,10 +22,13 @@ async def run(args):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--fms_address", type=str, default="10.0.100.5")
-    parser.add_argument("--websocket_port", type=int, default=5805)
-    parser.add_argument("-v", "--verbose", action="store_true")
+    parser = argparse.ArgumentParser(
+        description="Tool to monitor FMS match state. Exposes a websocket server to report match lifecycle events to other clients."
+    )
+    parser.add_argument("--fms_address", type=str, default="10.0.100.5", help="address of the FMS server")
+    parser.add_argument("--websocket_port", type=int, default=5805, help="port for the websocket server to listen on")
+    parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
+    parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
 
     args = parser.parse_args()
 
